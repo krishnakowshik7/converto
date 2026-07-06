@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConvertoAI Enterprise Console</title>
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #111827;
+            --bg-surface: #1f2937;
+            --accent-primary: #6366f1;
+            --accent-hover: #4f46e5;
+            --success: #10b981;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background-color: var(--bg-primary); 
+            color: var(--text-main);
+            height: 100vh; 
+            display: flex; 
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+        }
+        .brand { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 40px; }
+        .brand span { color: var(--accent-primary); }
+        .nav-item {
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .nav-item.active, .nav-item:hover {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--text-main);
+        }
+
+        .main-content { flex: 1; display: flex; background-color: var(--bg-primary); }
+        .view-panel { display: none; flex: 1; flex-direction: column; }
+        .view-panel.active { display: flex; }
+
+        .chat-section { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); }
+        .section-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-badge {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center; gap: 6px;
+        }
+        .status-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; }
+
+        .chat-box { flex: 1; padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .msg { max-width: 70%; padding: 14px 20px; font-size: 0.95rem; line-height: 1.6; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .user { background-color: var(--accent-primary); color: #fff; align-self: flex-end; border-radius: 16px 16px 0px 16px; }
+        .agent { background-color: var(--bg-secondary); color: var(--text-main); align-self: flex-start; border-radius: 16px 16px 16px 0px; border: 1px solid var(--border-color); }
+
+        .checkout-container { margin-top: 12px; background: rgba(16, 185, 129, 0.05); border: 1px dashed rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 16px; text-align: center; }
+        .checkout-btn { display: inline-flex; align-items: center; justify-content: center; width: 100%; padding: 12px; background-color: var(--success); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; }
+
+        .input-container { padding: 24px; background-color: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; gap: 16px; }
+        input { flex: 1; background-color: var(--bg-surface); border: 1px solid var(--border-color); padding: 14px 20px; border-radius: 10px; font-size: 0.95rem; color: white; outline: none; }
+        input:focus { border-color: var(--accent-primary); }
+        button { background-color: var(--accent-primary); color: white; border: none; padding: 0 28px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+
+        .analytics-panel { width: 320px; background-color: var(--bg-secondary); padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+        .panel-title { font-size: 1rem; font-weight: 600; color: #fff; text-transform: uppercase; }
+        .kpi-card { background-color: var(--bg-surface); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; }
+        .kpi-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; color: #fff; }
+
+        .tab-content-inner { padding: 32px; overflow-y: auto; flex: 1; }
+        
+        .cms-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border-color); }
+        .cms-form input { padding: 10px 14px; font-size: 0.85rem; }
+
+        .data-table { width: 100%; border-collapse: collapse; background-color: var(--bg-secondary); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); }
+        .data-table th, .data-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .data-table th { background-color: rgba(255,255,255,0.02); color: #fff; font-weight: 600; }
+        .data-table td { color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">🚀 Converto<span>AI</span></div>
+        <div class="nav-item active" onclick="switchView('chatView', this)">Live Agent Chat</div>
+        <div class="nav-item" onclick="switchView('productView', this); loadProducts();">Product Engine</div>
+        <div class="nav-item" onclick="switchView('discountView', this); loadDiscounts();">Discount Triggers</div>
+        <div class="nav-item" onclick="switchView('logView', this)">System Log</div>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="chatView" class="view-panel active" style="flex-direction: row; width: 100%;">
+            <div class="chat-section">
+                <div class="section-header">
+                    <div>
+                        <h2>Active Session Terminal</h2>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Channel: Web Widget • Node Server: Active</p>
+                    </div>
+                    <div class="status-badge"><div class="status-dot"></div> Gemini-Agent Connected</div>
+                </div>
+                <div class="chat-box" id="chatBox">
+                    <div class="msg agent">System initialization complete. Ask me any product queries. New items and markdown campaigns added via database tabs are loaded instantly.</div>
+                </div>
+                <div class="input-container">
+                    <input type="text" id="userInput" placeholder="Type customer message..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                    <button onclick="sendMessage()">Send Execute</button>
+                </div>
+            </div>
+
+            <div class="analytics-panel">
+                <h3 class="panel-title">Agent Telemetry</h3>
+                <div class="kpi-card"><div class="kpi-label">Conversion Acceleration</div><div class="kpi-value" style="color: var(--success);">+34.2%</div></div>
+                <div class="kpi-card"><div class="kpi-label">Average Response Latency</div><div class="kpi-value">240ms</div></div>
+                <div class="kpi-card"><div class="kpi-label">Autonomous Sales Recovered</div><div class="kpi-value">$2,490</div></div>
+            </div>
+        </div>
+
+        <div id="productView" class="view-panel">
+            <div class="section-header">
+                <h2>Product Engine Matrix</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Add new catalog options natively below. AI updates immediately.</p>
+            </div>
+            <div class="tab-content-inner">
+                <div class="cms-form">
+                    <input type="text" id="prodId" placeholder="Key (e.g., watch)">
+                    <input type="text" id="prodName" placeholder="Full Product Name">
+                    <input type="number" id="prodPrice" placeholder="Price ($)">
+                    <input type="number" id="prodStock" placeholder="Stock Level">
+                    <input type="text" id="prodSizes" placeholder="Sizes (S,M or One Size)">
+                    <button onclick="submitProduct()">Add Product</button>
+                </div>
+                <table class="data-table">
+                    <thead><tr><th>Item Key</th><th>Product Name</th><th>Base Value</th><th>Available Stock</th><th>Sizes Array</th></tr></thead>
+                    <tbody id="productTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="discountView" class="view-panel">
+            <div class="section-header">
+                <h2>Autonomous Discount Matrix</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Design custom discount codes and prompt activation parameters below.</p>
+            </div>
+            <div class="tab-content-inner">
+                
+                <div class="cms-form">
+                    <input type="text" id="discCode" placeholder="Code (e.g., WINTER50)">
+                    <input type="text" id="discRule" placeholder="AI Trigger Rule (e.g., asks for clearance items)">
+                    <input type="number" id="discValue" placeholder="Markdown Value (%)">
+                    <input type="text" id="discStatus" placeholder="Status (ACTIVE or INACTIVE)" value="ACTIVE">
+                    <button onclick="submitDiscount()">Create Campaign</button>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Campaign Code</th>
+                            <th>Trigger Rule (AI Prompt Instructions)</th>
+                            <th>Discount Value</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="discountTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="logView" class="view-panel">
+            <div class="section-header"><h2>System Log Stream</h2></div>
+            <div class="tab-content-inner">
+                <div style="font-family: monospace; background: #070a13; padding: 20px; border-radius: 12px; line-height: 1.8; color: #a5b4fc;">
+                    <div>[INFO]: FastAPI application engine running on port 8000.</div>
+                    <div>[INFO]: Dynamic SQL relational adapters tracking 'inventory' and 'discounts' schemas.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    function switchView(viewId, element) {
+        document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        element.classList.add('active');
+    }
+
+    async function loadProducts() {
+        try {
+            const res = await fetch('http://127.0.0.1:8000/get-all-products');
+            const products = await res.json();
+            const tbody = document.getElementById('productTableBody');
+            tbody.innerHTML = '';
+            products.forEach(p => {
+                const stockStyle = p.stock > 0 ? `color: var(--success)` : `color: #ef4444`;
+                tbody.innerHTML += `<tr><td style="color:var(--accent-primary)">${p.id}</td><td>${p.name}</td><td>$${p.price}</td><td style="${stockStyle}">${p.stock} units</td><td>${p.sizes}</td></tr>`;
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function submitProduct() {
+        const payload = {
+            id: document.getElementById('prodId').value,
+            name: document.getElementById('prodName').value,
+            price: parseFloat(document.getElementById('prodPrice').value),
+            stock: parseInt(document.getElementById('prodStock').value),
+            sizes: document.getElementById('prodSizes').value
+        };
+        if (!payload.id || !payload.name || isNaN(payload.price)) return alert("Fill required inputs.");
+        try {
+            await fetch('http://127.0.0.1:8000/add-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            document.getElementById('prodId').value = ''; document.getElementById('prodName').value = ''; document.getElementById('prodPrice').value = ''; document.getElementById('prodStock').value = ''; document.getElementById('prodSizes').value = '';
+            loadProducts();
+        } catch (e) { alert("Failed to add product."); }
+    }
+
+    // Dynamic Discount UI Rendering Fetch Mechanics
+    async function loadDiscounts() {
+        try {
+            const res = await fetch('http://127.0.0.1:8000/get-all-discounts');
+            const discounts = await res.json();
+            const tbody = document.getElementById('discountTableBody');
+            tbody.innerHTML = '';
+            
+            discounts.forEach(d => {
+                const badgeStyle = d.status === 'ACTIVE' ? 'background: rgba(16, 185, 129, 0.1); color: var(--success);' : 'background: rgba(255,255,255,0.05); color: var(--text-muted);';
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="color: var(--success); font-weight: bold;">${d.code}</td>
+                        <td>${d.rule}</td>
+                        <td>${d.value}% Off</td>
+                        <td><span style="padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; ${badgeStyle}">${d.status}</span></td>
+                    </tr>`;
+            });
+        } catch (e) { console.error("Error loading markdown parameters:", e); }
+    }
+
+    // POST Request handler to save new promotional data into SQLite
+    async function submitDiscount() {
+        const payload = {
+            code: document.getElementById('discCode').value,
+            rule: document.getElementById('discRule').value,
+            value: parseInt(document.getElementById('discValue').value),
+            status: document.getElementById('discStatus').value
+        };
+
+        if (!payload.code || !payload.rule || isNaN(payload.value)) return alert("Fill required inputs.");
+
+        try {
+            await fetch('http://127.0.0.1:8000/add-discount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            document.getElementById('discCode').value = ''; document.getElementById('discRule').value = ''; document.getElementById('discValue').value = '';
+            loadDiscounts();
+        } catch (e) { alert("Failed to store discount campaign parameter."); }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        const chatBox = document.getElementById('chatBox');
+        const text = input.value.trim();
+        if (!text) return;
+
+        chatBox.innerHTML += `<div class="msg user">${text}</div>`;
+        input.value = '';
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+            const data = await response.json();
+
+            let agentResponseHtml = `<div class="msg agent">${data.response}`;
+            if (data.checkout_link) {
+                agentResponseHtml += `
+                    <div class="checkout-container">
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Secure Transaction Link Generated Autonomously</p>
+                        <a href="${data.checkout_link}" target="_blank" class="checkout-btn">⚡ Secure 1-Click Checkout</a>
+                    </div>`;
+            }
+            agentResponseHtml += `</div>`;
+            
+            chatBox.innerHTML += agentResponseHtml;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        } catch (e) { chatBox.innerHTML += `<div class="msg agent" style="color: #ef4444;">Connection dropped.</div>`; }
+    }
+
+    window.onload = function() { loadProducts(); loadDiscounts(); }
+</script>
+</body>
+</html>
